@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <list>
 #include <string>
 #include <sstream>
 #include <chrono>
@@ -201,13 +202,62 @@ bool validate(std::vector<int> &gpu_vals, std::vector<int> &cpu_vals) {
     return true;
 }
 
-bool validate(std::vector<float> &gpu_vals, std::vector<float> &cpu_vals) {
+bool validate(std::vector<float> &gpu_vals, std::vector<float> &cpu_vals, float threshold) {
     if (gpu_vals.size() != cpu_vals.size())
         return false;
     for (int i = 0; i < gpu_vals.size(); ++i) {
-        if (fabs(gpu_vals[i] - cpu_vals[i]) >= 0.01f) {
-            return false;
+        if (fabs(gpu_vals[i] - cpu_vals[i]) >= threshold) {
+	    std::cout << gpu_vals[i] <<" - "<< cpu_vals[i] << " = "<< fabs(gpu_vals[i] - cpu_vals[i]) << std::endl;
+//            return false;
         }
+    }
+    return true;
+}
+
+template<typename A, typename B>
+void pairsort(A a[], B b[], map<A, list<B>> &c, int n) 
+{ 
+    for (int i = 0; i < n; i++)  
+    { 
+        auto search = c.find(a[i]);
+        if(search!=c.end()) {
+	   search->second.push_back(b[i]);
+	}
+	else {
+           list<int> l = {b[i]};
+	   c.insert({a[i], l});
+	}
+    } 
+}
+
+bool validate_rank(std::vector<float> &gpu_vals, std::vector<float> &cpu_vals) {
+    assert(gpu_vals.size()==cpu_vals.size());
+    int size = gpu_vals.size();
+    map<float, list<int>> map_cpu, map_gpu;
+    
+    std::vector<int> node_idx(size);
+    int count = 0;
+    generate(node_idx.begin(), node_idx.end(), [&](){ return count++; });
+    pairsort(gpu_vals.data(), node_idx.data(), map_gpu, size);
+    pairsort(cpu_vals.data(), node_idx.data(), map_cpu, size);
+
+    int i=0;
+    for(auto it_cpu=map_cpu.cbegin(), end_cpu=map_cpu.cend(), it_gpu=map_cpu.cbegin(), end_gpu=map_gpu.cend(); it_cpu!=end_cpu && it_gpu!=end_gpu;) {
+   	if((it_cpu->second.size())!=(it_gpu->second.size())) {
+//            cout << i<<"th position: "<< "CPU: "<< it_cpu->first << ", "<< it_cpu->second << ", GPU: "<< it_gpu->first<< ", "<< it_gpu->second << endl;
+            cout << i<<"th position: "<< "CPU: "<< it_cpu->second.size()<<  ", GPU: "<< it_gpu->second.size() << endl;
+	    return false;
+	}
+	else {
+	   for(auto it1=it_cpu->second.cbegin(), it2=it_gpu->second.cbegin(), it1_end=it_cpu->second.cend(), it2_end=it_gpu->second.cend(); it1!=it1_end && it2!=it2_end; ++it1, ++it2) {
+		if(*it1!=*it2)
+ 		{
+		  cout << "Fail: "<< *it1 << ", "<< *it2 << endl;
+		  return false;
+		}
+	   }
+	}
+        ++it_cpu; ++it_gpu; i++;
     }
     return true;
 }
