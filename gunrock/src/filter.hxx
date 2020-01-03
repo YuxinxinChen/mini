@@ -30,6 +30,23 @@ int filter_kernel(std::shared_ptr<Problem> problem,
     return stream_count;
 }
 
+template<typename Problem, typename Functor>
+int filter_upsweep_kernel(std::shared_ptr<Problem> problem,
+              std::shared_ptr<frontier_t<int> > &input,
+              std::shared_ptr<frontier_t<int> > &output,
+              int iteration,
+              standard_context_t &context)
+{
+    auto compact = transform_compact(input.get()->size(), context);
+    int *input_data = input.get()->data()->data();
+    typename Problem::data_slice_t *data = problem.get()->d_data_slice.data();
+    int stream_count = compact.upsweep([=]__device__(int idx) {
+                int item = input_data[idx];
+                return Functor::cond_filter_upsweep(item, data, iteration);
+            });
+    return stream_count;
+}
+
 struct UniquifyFunctor {
     static __device__ __forceinline__ void bitmask_cull(int idx, int *input_data, unsigned char *d_visited_mask) {
         int item = input_data[idx];

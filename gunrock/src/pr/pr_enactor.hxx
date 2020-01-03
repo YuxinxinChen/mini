@@ -59,21 +59,23 @@ struct pr_enactor_t : enactor_t {
                  iteration,
                  context);
 
+
             //std::cout << "neighborhood reduction.\n"; 
             //display_device_data(pr_problem.get()->d_current_ranks.data(), pr_problem.get()->gslice->num_nodes);
-            //display_device_data(pr_problem.get()->d_reduced_ranks.data(), pr_problem.get()->gslice->num_nodes);
+            display_device_data(pr_problem.get()->d_reduced_ranks.data(), pr_problem.get()->gslice->num_nodes);
 
-            frontier_length = filter_kernel<pr_problem_t, pr_functor_t>
+            frontier_length = filter_upsweep_kernel<pr_problem_t, pr_functor_t>
                 (pr_problem,
                  buffers[selector],
                  buffers[selector^1],
                  iteration,
                  context);
 
+            display_device_data(pr_problem.get()->d_current_ranks.data(), pr_problem.get()->gslice->num_nodes);
             std::cout << "finished iteration:" << iteration << " output length: " << frontier_length << std::endl;
 
             ++iteration;
-            selector^=1;
+//            selector^=1;
         }
         display_device_data(pr_problem.get()->d_current_ranks.data(), 10);
     }
